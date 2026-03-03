@@ -70,7 +70,7 @@ export function UserMenu({ userId, displayName }: Readonly<Props>) {
           <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
           <button
             type="button"
-            onClick={handleSignOut}
+            onClick={() => { void handleSignOut() }}
             className="block w-full text-left px-3 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
           >
             Sign out

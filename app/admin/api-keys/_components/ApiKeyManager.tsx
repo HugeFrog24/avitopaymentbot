@@ -8,6 +8,29 @@ import { createApiKeyAction, revokeApiKeyAction } from "../actions"
 
 type KeyRow = Omit<ApiKey, "key">
 
+const EXPIRY_OPTIONS: { label: string; value: number | null }[] = [
+  { label: "30 days",   value: 60 * 60 * 24 * 30  },
+  { label: "90 days",   value: 60 * 60 * 24 * 90  },
+  { label: "1 year",    value: 60 * 60 * 24 * 365 },
+  { label: "No expiry", value: null                },
+]
+
+function ExpiryLabel({ expiresAt, now }: Readonly<{ expiresAt: Date | string | null | undefined; now: number }>) {
+  if (!expiresAt) {
+    return <span className="text-amber-500 dark:text-amber-400">No expiry</span>
+  }
+  const d = new Date(expiresAt)
+  const daysLeft = Math.ceil((d.getTime() - now) / (1000 * 60 * 60 * 24))
+  const dateStr = d.toLocaleDateString()
+  if (daysLeft < 0) {
+    return <span className="text-red-500 dark:text-red-400">Expired {dateStr}</span>
+  }
+  if (daysLeft <= 30) {
+    return <span className="text-amber-500 dark:text-amber-400">Expires {dateStr} ({daysLeft}d left)</span>
+  }
+  return <span>Expires {dateStr}</span>
+}
+
 const btnPrimary =
   "bg-zinc-900 text-white text-xs font-medium px-4 py-2 rounded-lg hover:bg-zinc-700 " +
   "disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-zinc-100 " +
@@ -17,10 +40,17 @@ const btnDanger =
   "text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 " +
   "transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
 
-export function ApiKeyManager({ keys }: Readonly<{ keys: KeyRow[] }>) {
+const fieldCls =
+  "border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm " +
+  "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 " +
+  "focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/10 " +
+  "focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
+
+export function ApiKeyManager({ keys, now }: Readonly<{ keys: KeyRow[]; now: number }>) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState("")
+  const [expiresIn, setExpiresIn] = useState<number | null>(60 * 60 * 24 * 365)
   const [error, setError] = useState<string | null>(null)
   const [newKey, setNewKey] = useState<{ id: string; key: string; name: string | null } | null>(null)
   const [copied, setCopied] = useState(false)
@@ -31,7 +61,7 @@ export function ApiKeyManager({ keys }: Readonly<{ keys: KeyRow[] }>) {
     setError(null)
     setNewKey(null)
     startTransition(async () => {
-      const result = await createApiKeyAction(name)
+      const result = await createApiKeyAction(name, expiresIn ?? undefined)
       if (typeof result === "string") {
         setError(result)
       } else {
@@ -76,13 +106,21 @@ export function ApiKeyManager({ keys }: Readonly<{ keys: KeyRow[] }>) {
             onChange={(e) => { setName(e.target.value); }}
             placeholder="e.g. telegram-bot-prod"
             required
-            className={
-              "flex-1 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm " +
-              "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 " +
-              "focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/10 " +
-              "focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
-            }
+            className={`flex-1 ${fieldCls}`}
           />
+          <select
+            value={expiresIn === null ? "none" : String(expiresIn)}
+            onChange={(e) => {
+              setExpiresIn(e.target.value === "none" ? null : Number(e.target.value))
+            }}
+            className={`shrink-0 ${fieldCls}`}
+          >
+            {EXPIRY_OPTIONS.map((opt) => (
+              <option key={opt.label} value={opt.value === null ? "none" : String(opt.value)}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
           <button type="submit" disabled={isPending} className={btnPrimary}>
             {isPending ? "Creating…" : "Create"}
           </button>
@@ -144,11 +182,9 @@ export function ApiKeyManager({ keys }: Readonly<{ keys: KeyRow[] }>) {
                     <span className="ml-3 font-sans">
                       Created {new Date(k.createdAt).toLocaleDateString()}
                     </span>
-                    {k.expiresAt && (
-                      <span className="ml-3 font-sans">
-                        Expires {new Date(k.expiresAt).toLocaleDateString()}
-                      </span>
-                    )}
+                    <span className="ml-3 font-sans">
+                      <ExpiryLabel expiresAt={k.expiresAt} now={now} />
+                    </span>
                   </p>
                 </div>
                 <button

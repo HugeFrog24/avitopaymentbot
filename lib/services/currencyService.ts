@@ -22,6 +22,45 @@ export interface ConversionResult extends RateResult {
 // Fixed service fee in rubles, added on top of the converted amount
 export const SERVICE_FEE_RUB = new Decimal(500)
 
+// Curated fallback used when CBR is unreachable — covers all major subscription markets
+const FALLBACK_CURRENCIES = [
+  "AED", "AUD", "BRL", "CAD", "CHF", "CNY",
+  "CZK", "DKK", "EUR", "GBP", "HKD", "HUF",
+  "IDR", "INR", "JPY", "KRW", "NOK", "NZD",
+  "PLN", "RON", "SAR", "SEK", "SGD", "THB",
+  "TRY", "UAH", "USD", "ZAR",
+]
+
+/**
+ * Returns all currency codes available in today's CBR daily rates feed,
+ * sorted alphabetically. The result is cached for 24 hours (Next.js fetch cache).
+ *
+ * Falls back to a curated static list if CBR is unreachable, so a network
+ * hiccup never breaks the order form.
+ */
+export async function fetchAvailableCurrencies(
+  fetcher: typeof fetch = fetch,
+): Promise<string[]> {
+  try {
+    const response = await fetcher(CBR_URL, {
+      next: { revalidate: 86400 },
+      headers: { Accept: "application/xml" },
+    })
+    if (!response.ok) throw new Error(`CBR fetch failed: ${response.status}`)
+
+    const xml = await response.text()
+    const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" })
+    const parsed = parser.parse(xml) as CbrResponse
+
+    const valutes = parsed.ValCurs?.Valute
+    if (!Array.isArray(valutes)) throw new TypeError("Unexpected CBR structure")
+
+    return valutes.map((v) => v.CharCode).sort((a, b) => a.localeCompare(b))
+  } catch {
+    return FALLBACK_CURRENCIES
+  }
+}
+
 // ── XML parsing ──────────────────────────────────────────────────────────────
 
 interface CbrValute {

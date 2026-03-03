@@ -1,12 +1,24 @@
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { headers } from "next/headers"
 import { requireAdminPage } from "@/lib/api/auth"
+import { auth } from "@/lib/auth"
 import { getSettings } from "@/lib/services/settingsService"
 import { ServiceFeeForm } from "./_components/ServiceFeeForm"
+import { ApiKeyManager } from "../api-keys/_components/ApiKeyManager"
+
+function requestTime(): number { return Date.now() }
 
 export default async function SettingsPage() {
   await requireAdminPage()
-  const settings = await getSettings()
+  const now = requestTime()
+  const [settings, { apiKeys }] = await Promise.all([
+    getSettings(),
+    auth.api.listApiKeys({
+      query: { limit: 100, sortBy: "createdAt", sortDirection: "desc" },
+      headers: await headers(),
+    }),
+  ])
 
   return (
     <main className="max-w-2xl mx-auto px-6 py-8 space-y-5">
@@ -31,6 +43,18 @@ export default async function SettingsPage() {
           </p>
           <ServiceFeeForm currentFee={settings.serviceFeeRub.toNumber()} />
         </div>
+      </div>
+
+      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide">
+            API Keys
+          </h2>
+          <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+            Bot API keys for headless service access. Keys are shown once — copy immediately after creation.
+          </p>
+        </div>
+        <ApiKeyManager keys={apiKeys} now={now} />
       </div>
     </main>
   )

@@ -8,9 +8,10 @@ import { OrderForm, type OrderFormResult } from "@/app/_components/OrderForm"
 
 interface Props {
   isAdmin: boolean
+  currencies: string[]
 }
 
-export function OrderNewClient({ isAdmin }: Readonly<Props>) {
+export function OrderNewClient({ isAdmin, currencies }: Readonly<Props>) {
   const router = useRouter()
   const [submitted, setSubmitted] = useState<OrderFormResult | null>(null)
   const [formKey, setFormKey] = useState(0)
@@ -92,6 +93,7 @@ export function OrderNewClient({ isAdmin }: Readonly<Props>) {
         key={formKey}
         mode={isAdmin ? "admin" : "guest"}
         cancelHref={isAdmin ? "/admin" : "/"}
+        currencies={currencies}
         onSuccess={handleSuccess}
       />
     </main>

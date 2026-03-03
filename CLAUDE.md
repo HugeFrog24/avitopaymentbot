@@ -5,6 +5,9 @@
 Always fetch current official docs before using or integrating any dependency.
 Never rely on training data alone — it goes stale. Use WebFetch on official doc URLs first.
 
+**BetterAuth LLM reference index:** https://better-auth.com/llms.txt
+Fetch this first whenever working with BetterAuth features, plugins, or configuration.
+
 ## Package manager
 
 **pnpm only.** Never npm or yarn.

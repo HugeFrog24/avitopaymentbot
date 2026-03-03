@@ -48,7 +48,14 @@ export const auth = betterAuth({
       },
       expiresIn: 600, // 10 minutes
     }),
-    apiKey(),
+    apiKey({
+      rateLimit: {
+        enabled: false, // key secrecy is the auth mechanism — per-request counting
+                        // would lock the bot out after 10 calls/day (plugin default)
+      },
+      // No defaultExpiresIn here — the creation UI always passes expiresIn explicitly,
+      // so "No expiry" keys are genuinely perpetual rather than silently getting 1 year.
+    }),
     anonymous({
       // When an anonymous user links a real auth method, transfer their data to the
       // new account. BetterAuth auto-deletes the anonymous user after this runs.

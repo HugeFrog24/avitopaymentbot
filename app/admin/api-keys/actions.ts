@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth"
 
 export async function createApiKeyAction(
   name: string,
+  expiresIn?: number, // seconds; omit for a perpetual key
 ): Promise<{ id: string; key: string; name: string | null } | string> {
   const adminId = await requireAdminPage()
 
@@ -14,7 +15,11 @@ export async function createApiKeyAction(
 
   try {
     const result = await auth.api.createApiKey({
-      body: { name: name.trim(), userId: adminId },
+      body: {
+        name: name.trim(),
+        userId: adminId,
+        ...(expiresIn === undefined ? {} : { expiresIn }),
+      },
     })
     revalidatePath("/admin/api-keys")
     return { id: result.id, key: result.key, name: result.name ?? null }

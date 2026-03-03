@@ -23,8 +23,6 @@ const EMPTY: OrderFormState = {
   currency: "USD",
 }
 
-const CURRENCIES = ["USD", "EUR", "GBP", "TRY", "PLN", "AED"]
-
 export interface OrderFormResult {
   orderId: string
   claimUrl: string
@@ -38,6 +36,8 @@ interface OrderFormProps {
   mode: "admin" | "guest"
   /** href for the cancel / back link */
   cancelHref: string
+  /** Currency codes from CBR (passed from the server component) */
+  currencies: string[]
   onSuccess: (result: OrderFormResult) => void
 }
 
@@ -54,7 +54,7 @@ const labelCls = "block text-xs font-medium text-zinc-500 dark:text-zinc-400 upp
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function OrderForm({ mode, cancelHref, onSuccess }: Readonly<OrderFormProps>) {
+export function OrderForm({ mode, cancelHref, currencies, onSuccess }: Readonly<OrderFormProps>) {
   const [form, setForm] = useState<OrderFormState>(EMPTY)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -190,7 +190,7 @@ export function OrderForm({ mode, cancelHref, onSuccess }: Readonly<OrderFormPro
               onChange={(e) => { set("currency", e.target.value) }}
               className={`${inputCls} cursor-pointer`}
             >
-              {CURRENCIES.map((c) => (
+              {currencies.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
