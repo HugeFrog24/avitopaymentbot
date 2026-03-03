@@ -14,7 +14,7 @@ const rubCompact = new Intl.NumberFormat("ru-RU", {
   notation: "compact",
 })
 
-const VALID_SORT = new Set<OrderSortField>(["requiredRub", "paidRub", "createdAt"])
+const VALID_SORT = new Set<OrderSortField>(["requiredRub", "paidRub", "createdAt", "receiptRequested"])
 
 export default async function AdminPage({
   searchParams,
