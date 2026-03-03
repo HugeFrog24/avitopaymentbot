@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
 import { ServiceCombobox } from "@/app/_components/ServiceCombobox"
+import { CurrencySelect } from "@/app/_components/CurrencySelect"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -184,16 +185,12 @@ export function OrderForm({ mode, cancelHref, currencies, onSuccess }: Readonly<
             <label htmlFor="currency" className={labelCls}>
               Currency
             </label>
-            <select
+            <CurrencySelect
               id="currency"
               value={form.currency}
-              onChange={(e) => { set("currency", e.target.value) }}
-              className={`${inputCls} cursor-pointer`}
-            >
-              {currencies.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+              onChange={(v) => { set("currency", v) }}
+              currencies={currencies}
+            />
           </div>
         </div>
 
