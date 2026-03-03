@@ -12,10 +12,10 @@ function str(val: unknown): string | undefined {
   return typeof val === "string" ? val : undefined
 }
 
-// Callers with orders:write:all must never own orders as clients — mint a fresh
+// Callers with orders:create:behalf must never own orders as clients — mint a fresh
 // anonymous user when no explicit body.userId is provided.
 async function resolveOrderOwner(caller: CallerResult & { ok: true }, bodyUserId: unknown): Promise<string | null> {
-  if (hasScope(caller, "orders:write:all")) {
+  if (hasScope(caller, "orders:create:behalf")) {
     const explicit = str(bodyUserId)
     if (explicit) return explicit
     const newClient = await prisma.user.create({ data: { isAnonymous: true, role: "CLIENT" } })
@@ -26,8 +26,8 @@ async function resolveOrderOwner(caller: CallerResult & { ok: true }, bodyUserId
 
 // POST /api/orders — create a new order
 // Priority for userId resolution:
-//   1. body.userId   — trusted only for callers with orders:write:all (create on behalf of a client)
-//   2. mint new anonymous CLIENT — orders:write:all callers without explicit userId (never use their own id)
+//   1. body.userId   — trusted only for callers with orders:create:behalf (create on behalf of a client)
+//   2. mint new anonymous CLIENT — orders:create:behalf callers without explicit userId (never use their own id)
 //   3. session       — CLIENT callers are always pinned to their own userId
 //   4. 400           — CLIENT with no session identity
 // clientHandle (optional) is written to the user's handle field if not already set.

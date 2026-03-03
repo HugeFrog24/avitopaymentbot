@@ -28,7 +28,8 @@ export type CallerResult = CallerOk | CallerErr
 // ── Scopes ────────────────────────────────────────────────────────────────────
 
 export const SCOPES = [
-  "orders:create",          // POST /api/orders
+  "orders:create",          // POST /api/orders              (own identity)
+  "orders:create:behalf",   // POST /api/orders              (on behalf of another — mints anonymous if no body.userId)
   "orders:list:own",        // GET  /api/orders              (own only)
   "orders:list:all",        // GET  /api/orders              (any user)
   "orders:read:own",        // GET  /api/orders/:id          (own only)
@@ -56,6 +57,7 @@ export const ROLE_SCOPES: Record<CallerRole, readonly Scope[]> = {
   ADMIN: [...SCOPES],
   BOT: [
     "orders:create",
+    "orders:create:behalf",
     "orders:list:all",
     "orders:read:all",
     "orders:write:all",
