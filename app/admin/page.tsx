@@ -2,6 +2,7 @@ import { Package, Clock, CreditCard, CircleDollarSign } from "lucide-react"
 import { requireAdminPage } from "@/lib/api/auth"
 import { listOrders, getOrderStats, type OrderSortField } from "@/lib/services/orderService"
 import { OrdersTable } from "@/app/_components/OrdersTable"
+import { StatCard } from "@/app/_components/StatCard"
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZES } from "@/app/_components/Pagination"
 import { DemoFilter, type DemoMode } from "./_components/DemoFilter"
 
@@ -86,19 +87,7 @@ export default async function AdminPage({
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card) => (
-          <div key={card.label} className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700 px-5 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">
-                {card.label}
-              </span>
-              <card.icon size={16} className={card.iconClass} />
-            </div>
-            <p
-              className={`text-2xl font-semibold tabular-nums ${card.valueClass ?? "text-zinc-900 dark:text-zinc-100"}`}
-            >
-              {card.value}
-            </p>
-          </div>
+          <StatCard key={card.label} {...card} />
         ))}
       </div>
 
