@@ -14,6 +14,7 @@ export interface OrderFormState {
   clientHandle: string
   originalPrice: string
   currency: string
+  receiptRequested: boolean
 }
 
 const EMPTY: OrderFormState = {
@@ -22,6 +23,7 @@ const EMPTY: OrderFormState = {
   clientHandle: "",
   originalPrice: "",
   currency: "USD",
+  receiptRequested: false,
 }
 
 export interface OrderFormResult {
@@ -70,6 +72,10 @@ export function OrderForm({ mode, cancelHref, currencies, onSuccess }: Readonly<
     e.preventDefault()
     setError(null)
     const snapshot = form
+    if (!snapshot.serviceName.trim()) {
+      setError("Service name is required")
+      return
+    }
     startTransition(async () => {
       // Ensure an authenticated session exists before creating the order.
       // For guest submissions, create an anonymous BetterAuth session so the
@@ -88,6 +94,7 @@ export function OrderForm({ mode, cancelHref, currencies, onSuccess }: Readonly<
           tariff: snapshot.tariff || undefined,
           originalPrice: snapshot.originalPrice || undefined,
           originalCurrency: snapshot.currency,
+          receiptRequested: snapshot.receiptRequested,
         }),
       })
       const data = (await res.json()) as { id?: string; claimUrl?: string; error?: string }
@@ -193,6 +200,20 @@ export function OrderForm({ mode, cancelHref, currencies, onSuccess }: Readonly<
             />
           </div>
         </div>
+
+        {/* ── Receipt ── */}
+        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={form.receiptRequested}
+            onChange={(e) => { set("receiptRequested", e.target.checked) }}
+            className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 accent-zinc-900 dark:accent-zinc-100 cursor-pointer"
+          />
+          <span className="text-sm text-zinc-700 dark:text-zinc-300">
+            Send me a ФНС receipt{" "}
+            <span className="text-zinc-400 dark:text-zinc-500">(чек самозанятого)</span>
+          </span>
+        </label>
 
         {/* ── Error ── */}
         {error != null && <p className="text-xs text-red-500">{error}</p>}

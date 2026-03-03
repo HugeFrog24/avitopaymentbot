@@ -33,6 +33,7 @@ export interface CreateOrderData {
   duration?: string
   originalPrice?: number | string
   originalCurrency?: string
+  receiptRequested?: boolean // client requested ФНС receipt (чек)
 }
 
 export type UpdateOrderData = Omit<CreateOrderData, "userId">
@@ -68,7 +69,7 @@ export interface AdjustRequiredParams {
   actorName?: string | null
 }
 
-export type OrderSortField = "requiredRub" | "paidRub" | "createdAt"
+export type OrderSortField = "requiredRub" | "paidRub" | "createdAt" | "receiptRequested"
 
 export interface ListOrdersFilter {
   userId?: string
@@ -103,6 +104,7 @@ const SUMMARY_SELECT = {
   paidRub: true,
   originalPrice: true,
   originalCurrency: true,
+  receiptRequested: true,
   createdAt: true,
   updatedAt: true,
   user: { select: { id: true, handle: true, email: true, name: true } },
@@ -144,6 +146,7 @@ export async function createOrder(data: CreateOrderData, db = prisma): Promise<O
       duration: data.duration,
       originalPrice: data.originalPrice == null ? undefined : new Decimal(data.originalPrice),
       originalCurrency: data.originalCurrency,
+      receiptRequested: data.receiptRequested ?? false,
       serviceFeeRub: settings.serviceFeeRub,
       status: "DRAFT",
       events: {

@@ -41,6 +41,10 @@ export async function POST(req: NextRequest) {
     const caller = await requireScope("orders:create")
     if (!caller.ok) return caller.response
 
+    // ── Validate required fields ──────────────────────────────────────────────
+    const serviceName = str(body.serviceName)?.trim()
+    if (!serviceName) return badRequest("serviceName is required")
+
     // ── Resolve order owner ───────────────────────────────────────────────────
     const userId = await resolveOrderOwner(caller, body.userId)
     if (!userId) return badRequest("No user identity available")
@@ -59,13 +63,14 @@ export async function POST(req: NextRequest) {
       userId,
       actorName: caller.actorName,
       claimToken,
-      serviceName: str(body.serviceName),
+      serviceName,
       tariff: str(body.tariff),
       duration: str(body.duration),
       originalPrice: typeof body.originalPrice === "string" || typeof body.originalPrice === "number"
         ? body.originalPrice
         : undefined,
       originalCurrency: str(body.originalCurrency),
+      receiptRequested: body.receiptRequested === true,
     })
 
     return created({ ...order, claimUrl: `/orders/${order.id}?token=${claimToken}` })
@@ -93,7 +98,7 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(Number.parseInt(searchParams.get("limit") ?? "", 10) || 50, 100)
     const offset = Number.parseInt(searchParams.get("offset") ?? "", 10) || 0
 
-    const VALID_SORT = new Set<OrderSortField>(["requiredRub", "paidRub", "createdAt"])
+    const VALID_SORT = new Set<OrderSortField>(["requiredRub", "paidRub", "createdAt", "receiptRequested"])
     const sortParam = searchParams.get("sortBy") ?? ""
     const sortBy = VALID_SORT.has(sortParam as OrderSortField) ? (sortParam as OrderSortField) : undefined
     const sortDirParam = searchParams.get("sortDir")

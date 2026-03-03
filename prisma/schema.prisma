@@ -175,6 +175,8 @@ model Order {
   // Service fee snapshot — copied from Settings.serviceFeeRub at order creation
   serviceFeeRub    Decimal     @default(500) @db.Decimal(12, 2)
 
+  receiptRequested Boolean     @default(false)  // client requested ФНС receipt (чек)
+
   status           OrderStatus @default(DRAFT)
   claimToken       String?     @unique  // anonymous access token — share with client
 

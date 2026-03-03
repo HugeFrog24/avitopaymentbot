@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Receipt } from "lucide-react"
 import { getNextStates } from "@/lib/services/fsmService"
 import type { EventActor, OrderStatus, PaymentSource } from "@/lib/generated/prisma/client"
 import type { OrderWithRelations } from "@/lib/services/orderService"
@@ -164,6 +164,11 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
             )}
             {order.tariff != null && (
               <span className="text-xs text-zinc-400 dark:text-zinc-500 truncate">{order.tariff}</span>
+            )}
+            {order.receiptRequested && (
+              <span title="Receipt requested" className="shrink-0">
+                <Receipt size={13} className="text-violet-500" />
+              </span>
             )}
           </div>
           <div className="flex items-center gap-4 shrink-0 text-xs text-zinc-400 dark:text-zinc-500">

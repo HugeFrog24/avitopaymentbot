@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowUpRight, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
+import { ArrowUpRight, ChevronUp, ChevronDown, ChevronsUpDown, Receipt } from "lucide-react"
 import { type Decimal } from "@prisma/client/runtime/client"
 import { StatusBadge } from "@/app/_components/StatusBadge"
 import type { OrderSummary, OrderSortField } from "@/lib/services/orderService"
@@ -104,6 +104,9 @@ export function OrdersTable({ orders, isAdmin, params }: Readonly<Props>) {
               Status
             </th>
             <th className={`text-left ${TH}`}>
+              <SortHeader col="receiptRequested" label="Чек" params={params} align="left" />
+            </th>
+            <th className={`text-left ${TH}`}>
               <SortHeader col="createdAt" label="Date" params={params} align="left" />
             </th>
           </tr>
@@ -181,6 +184,13 @@ export function OrdersTable({ orders, isAdmin, params }: Readonly<Props>) {
                 {/* Status */}
                 <td className="px-4 py-4">
                   <StatusBadge status={order.status} />
+                </td>
+
+                {/* Чек */}
+                <td className="px-4 py-4">
+                  {order.receiptRequested
+                    ? <span title="Receipt requested"><Receipt size={14} className="text-violet-500" /></span>
+                    : <span className="text-zinc-300 dark:text-zinc-600">—</span>}
                 </td>
 
                 {/* Date */}
