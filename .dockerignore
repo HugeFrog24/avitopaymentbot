@@ -1,0 +1,29 @@
+# Node modules — reinstalled inside the image from the lockfile
+node_modules
+
+# Next.js build output — rebuilt inside the image
+.next
+
+# Prisma generated client — regenerated inside the builder via `prisma generate`
+# (host-generated client may target the wrong platform / architecture)
+lib/generated/
+
+# Postgres bind-mount data
+data/
+
+# Git history
+.git
+
+# Environment files — secrets must not be baked into the image;
+# inject them at runtime via docker-compose `environment:` or a secrets manager
+.env
+.env.local
+.env.development
+.env.production
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Editor / OS artefacts
+.DS_Store
+*.log

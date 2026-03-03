@@ -1,0 +1,68 @@
+services:
+  # ── Database ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: avito_payment_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-avito_payment}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Bind mount — `docker compose down -v` cannot destroy this data.
+      # To wipe: rm -rf ./data/postgres (intentional, explicit action required).
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-avito_payment}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Migrations ─────────────────────────────────────────────────────────────
+  # Runs `prisma migrate deploy` against the database, then exits.
+  # Idempotent — safe to run on every `docker compose up`.
+  # The `web` service waits for this to exit 0 before starting.
+  migrate:
+    build:
+      context: .
+      target: builder # builder stage has pnpm, prisma CLI, and migration files
+    command: pnpm prisma migrate deploy
+    environment:
+      # In Docker, the DB host is the service name `postgres`, not localhost.
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no" # run once and exit; do not restart on failure
+
+  # ── Web app ────────────────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      target: runner # minimal standalone Next.js image
+    container_name: avito_payment_web
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      # Better Auth
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      # SMTP
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      NODE_ENV: production
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy

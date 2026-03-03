@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.prisma.io)",
+      "WebFetch(domain:www.better-auth.com)",
+      "WebFetch(domain:better-auth.com)"
+    ]
+  }
+}
