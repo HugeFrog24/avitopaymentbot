@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Plus, Settings, LayoutDashboard } from "lucide-react"
+import { Plus, LayoutDashboard } from "lucide-react"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { resolveCaller, hasScope } from "@/lib/api/auth"
@@ -47,24 +47,15 @@ export async function AppHeader() {
           ) : (
             <>
               {isAdmin && (
-                <>
-                  <Link
-                    href="/admin"
-                    className="inline-flex items-center gap-1.5 bg-zinc-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-zinc-700 transition-colors dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-                  >
-                    <LayoutDashboard size={12} />
-                    Dashboard
-                  </Link>
-                  <Link
-                    href="/admin/settings"
-                    className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
-                    aria-label="Settings"
-                  >
-                    <Settings size={15} />
-                  </Link>
-                </>
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-1.5 bg-zinc-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-zinc-700 transition-colors dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                >
+                  <LayoutDashboard size={12} />
+                  Dashboard
+                </Link>
               )}
-              <UserMenu userId={userId ?? ""} displayName={displayName ?? ""} />
+              <UserMenu userId={userId ?? ""} displayName={displayName ?? ""} isAdmin={isAdmin} />
             </>
           )}
         </div>

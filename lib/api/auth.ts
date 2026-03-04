@@ -33,6 +33,7 @@ export const SCOPES = [
   "orders:create:behalf",   // POST /api/orders              (on behalf of another — mints anonymous if no body.userId)
   "orders:list:all",        // GET  /api/orders              (any user)
   "orders:list:own",        // GET  /api/orders              (own only)
+  "orders:notes:read",      // server component: read internalNote on an order (ADMIN only)
   "orders:notes:write",     // server action: save/clear internalNote on an order (ADMIN only)
   "orders:payments:write",  // POST /api/orders/:id/payments
   "orders:rate:write",      // POST /api/orders/:id/rate
@@ -42,6 +43,7 @@ export const SCOPES = [
   "orders:write:all",       // PATCH /api/orders/:id         (any)
   "orders:write:own",       // PATCH /api/orders/:id         (own only)
   "settings:write",         // server action: update service fee (ADMIN only)
+  "tos:accept",             // POST /api/tos/accept          (record own or on-behalf acceptance)
   "users:read:all",         // GET  /users/:id               (any user — admin/bot)
   "users:write:all",        // PATCH /api/users/:id          (any user — admin/bot)
   "users:write:own",        // PATCH /api/users/:id          (own profile only)
@@ -63,6 +65,7 @@ export const ROLE_SCOPES: Record<CallerRole, readonly Scope[]> = {
     "orders:read:all",
     "orders:write:all",
     "orders:status:write",
+    "tos:accept",
     "wallet:read:all",
     "users:read:all",
     "users:write:all",
@@ -72,6 +75,7 @@ export const ROLE_SCOPES: Record<CallerRole, readonly Scope[]> = {
     "orders:list:own",
     "orders:read:own",
     "orders:write:own",
+    "tos:accept",
     "wallet:read:own",
     "users:write:own",
   ],
@@ -121,6 +125,7 @@ async function getSessionUser(): Promise<{ id: string; role: Role; actorName: st
   return {
     id: session.user.id,
     role: user?.role ?? "CLIENT",
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- intentional: || skips empty strings, ?? does not
     actorName: user?.handle?.trim() || user?.name?.trim() || null,
   }
 }

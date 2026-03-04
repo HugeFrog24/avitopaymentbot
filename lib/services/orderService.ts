@@ -523,16 +523,38 @@ export async function adjustRequired(
  * Saves (or clears) the private internal note on an order.
  * null = note cleared. This field is never surfaced to clients.
  */
+export interface OrderNoteWithEditor {
+  note: string
+  updatedAt: Date
+  updatedBy: string | null
+  editor: Pick<User, "handle" | "name"> | null
+}
+
+export async function getInternalNote(
+  orderId: string,
+  db = prisma,
+): Promise<OrderNoteWithEditor | null> {
+  return db.orderInternalNote.findUnique({
+    where: { orderId },
+    select: { note: true, updatedAt: true, updatedBy: true, editor: { select: { handle: true, name: true } } },
+  })
+}
+
 export async function saveInternalNote(
   orderId: string,
   note: string | null,
+  updatedBy: string | null = null,
   db = prisma,
-): Promise<OrderWithRelations> {
-  return db.order.update({
-    where: { id: orderId },
-    data: { internalNote: note ?? null },
-    include: ORDER_INCLUDE,
-  })
+): Promise<void> {
+  if (note == null) {
+    await db.orderInternalNote.deleteMany({ where: { orderId } })
+  } else {
+    await db.orderInternalNote.upsert({
+      where: { orderId },
+      update: { note, updatedBy },
+      create: { orderId, note, updatedBy },
+    })
+  }
 }
 
 /** Fetches a single order with all relations. */

@@ -69,10 +69,12 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  orders   Order[]
-  wallet   Wallet?
-  sessions Session[]
-  accounts Account[]
+  orders          Order[]
+  wallet          Wallet?
+  sessions        Session[]
+  accounts        Account[]
+  noteEdits       OrderInternalNote[]
+  tosAcceptances  TosAcceptance[]
 }
 
 // ─── Better Auth — session / account / verification ──────────────────────────
@@ -177,8 +179,7 @@ model Order {
 
   receiptRequested Boolean     @default(false)  // client requested ФНС receipt (чек)
 
-  // Private admin scratchpad — never surfaced to clients
-  internalNote     String?
+  internalNote     OrderInternalNote?  // private admin scratchpad — never surfaced to clients
 
   status           OrderStatus @default(DRAFT)
   claimToken       String?     @unique  // anonymous access token — share with client
@@ -233,6 +234,20 @@ model Adjustment {
   @@index([orderId])
 }
 
+// Private admin scratchpad for an order — 1:1, never included in public API responses.
+// Kept separate from Order so the field is structurally absent from ORDER_INCLUDE
+// and cannot accidentally leak through route handlers that serialize OrderWithRelations.
+model OrderInternalNote {
+  id        String   @id @default(uuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  note      String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  editor    User?    @relation(fields: [updatedBy], references: [id])
+}
+
 // ─── Global config ───────────────────────────────────────────────────────────
 
 // Single-row singleton. Use getSettings() / updateServiceFee() from settingsService.
@@ -257,6 +272,50 @@ model ServiceSuggestion {
 
   @@index([isActive, sortOrder])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "ServiceSuggestion_name_trgm_gin_idx")
+}
+
+// ─── Privacy Policy ──────────────────────────────────────────────────────────
+
+// Versioned privacy policy text. Only one version is active at a time.
+// No user-acceptance tracking — this is display-only (unlike ToS).
+model PrivacyPolicy {
+  id        Int      @id @default(autoincrement())
+  version   String   @unique  // human label: "1.0", "2025-03-01", etc.
+  content   String            // full text (Markdown)
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isActive])
+}
+
+// ─── Terms of Service ────────────────────────────────────────────────────────
+
+// Versioned ToS text. Only one version is active at a time.
+// isActive is a soft flag; service layer enforces the single-active invariant.
+model TosVersion {
+  id        Int      @id @default(autoincrement())
+  version   String   @unique  // human label: "1.0", "2025-03-01", etc.
+  content   String            // full text (Markdown)
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  acceptances TosAcceptance[]
+
+  @@index([isActive])
+}
+
+// Records that a specific user agreed to a specific ToS version.
+// Append-only in practice; upsert on re-acceptance is a no-op.
+model TosAcceptance {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tosVersionId Int
+  tosVersion   TosVersion @relation(fields: [tosVersionId], references: [id])
+  acceptedAt   DateTime   @default(now())
+
+  @@unique([userId, tosVersionId])
+  @@index([userId])
 }
 
 // Audit log — every status transition and notable action
