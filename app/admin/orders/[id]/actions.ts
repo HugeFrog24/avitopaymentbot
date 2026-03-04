@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { requireScope } from "@/lib/api/auth"
-import { confirmPayment, transitionStatus, adjustRequired } from "@/lib/services/orderService"
+import { confirmPayment, transitionStatus, adjustRequired, saveInternalNote } from "@/lib/services/orderService"
 import type { OrderStatus, PaymentSource } from "@/lib/generated/prisma/client"
 
 export async function confirmPaymentAction(
@@ -40,6 +40,7 @@ export async function confirmPaymentAction(
 export async function transitionStatusAction(
   orderId: string,
   newStatus: OrderStatus,
+  message?: string,
 ): Promise<string | null> {
   const caller = await requireScope("orders:status:write")
   if (!caller.ok) return "Unauthorized"
@@ -51,6 +52,7 @@ export async function transitionStatusAction(
       actor: caller.role,
       actorId: caller.userId,
       actorName: caller.actorName,
+      message: message?.trim() ? message.trim() : undefined,
     })
     revalidatePath(`/admin/orders/${orderId}`)
     revalidatePath(`/orders/${orderId}`)
@@ -85,5 +87,24 @@ export async function adjustRequiredAction(
     return null
   } catch (err) {
     return err instanceof Error ? err.message : "Adjustment failed"
+  }
+}
+
+export async function saveInternalNoteAction(
+  orderId: string,
+  _prev: string | null,
+  formData: FormData,
+): Promise<string | null> {
+  const caller = await requireScope("orders:notes:write")
+  if (!caller.ok) return "Unauthorized"
+
+  const note = ((formData.get("internalNote") as string | null) ?? "").trim() || null
+
+  try {
+    await saveInternalNote(orderId, note)
+    revalidatePath(`/admin/orders/${orderId}`)
+    return null
+  } catch (err) {
+    return err instanceof Error ? err.message : "Failed to save note"
   }
 }

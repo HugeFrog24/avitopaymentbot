@@ -177,6 +177,9 @@ model Order {
 
   receiptRequested Boolean     @default(false)  // client requested ФНС receipt (чек)
 
+  // Private admin scratchpad — never surfaced to clients
+  internalNote     String?
+
   status           OrderStatus @default(DRAFT)
   claimToken       String?     @unique  // anonymous access token — share with client
 
@@ -266,7 +269,9 @@ model OrderEvent {
   actorId   String?      // null for BOT / SYSTEM
   actorName String?      // display name snapshot at event time; null for BOT / SYSTEM
 
-  message   String
+  // null = nothing to add beyond the status fields (pure transition, no human note).
+  // non-null = meaningful content: admin/client note, system detail (rate freeze, etc.).
+  message   String?
   oldStatus OrderStatus?
   newStatus OrderStatus?
 

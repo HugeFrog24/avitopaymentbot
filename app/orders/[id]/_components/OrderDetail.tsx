@@ -9,6 +9,7 @@ import { ConfirmPaymentForm } from "@/app/admin/orders/[id]/_components/ConfirmP
 import { AdjustRequiredForm } from "@/app/admin/orders/[id]/_components/AdjustRequiredForm"
 import { fetchRate } from "@/lib/services/currencyService"
 import { UserAvatar } from "@/app/_components/UserAvatar"
+import { InternalNoteBox } from "@/app/admin/orders/[id]/_components/InternalNoteBox"
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -388,6 +389,13 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
                 </div>
               </div>
             )}
+
+            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+              <SectionHeader title="Internal note" />
+              <div className="p-4">
+                <InternalNoteBox orderId={order.id} initialNote={order.internalNote} />
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -412,7 +420,9 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
                       {ev.actorName ?? ACTOR_LABEL[ev.actor]}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-zinc-700 dark:text-zinc-300 break-words">{ev.message}</p>
+                      {ev.message != null && (
+                        <p className="text-sm text-zinc-700 dark:text-zinc-300 break-words">{ev.message}</p>
+                      )}
                       {ev.oldStatus != null &&
                         ev.newStatus != null &&
                         ev.oldStatus !== ev.newStatus && (
@@ -423,9 +433,14 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
                     </div>
                   </>
                 ) : (
-                  <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                    {ev.newStatus == null ? ev.message : STATUS_LABEL[ev.newStatus]}
-                  </p>
+                  <div>
+                    <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                      {ev.newStatus == null ? ev.message : STATUS_LABEL[ev.newStatus]}
+                    </p>
+                    {ev.message != null && (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 italic">{ev.message}</p>
+                    )}
+                  </div>
                 )}
               </div>
             ))}

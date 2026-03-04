@@ -28,25 +28,26 @@ export type CallerResult = CallerOk | CallerErr
 // ── Scopes ────────────────────────────────────────────────────────────────────
 
 export const SCOPES = [
+  "orders:adjust:write",    // POST /api/orders/:id/adjust
   "orders:create",          // POST /api/orders              (own identity)
   "orders:create:behalf",   // POST /api/orders              (on behalf of another — mints anonymous if no body.userId)
-  "orders:list:own",        // GET  /api/orders              (own only)
   "orders:list:all",        // GET  /api/orders              (any user)
-  "orders:read:own",        // GET  /api/orders/:id          (own only)
-  "orders:read:all",        // GET  /api/orders/:id          (any)
-  "orders:write:own",       // PATCH /api/orders/:id         (own only)
-  "orders:write:all",       // PATCH /api/orders/:id         (any)
-  "orders:status:write",    // POST /api/orders/:id/status
+  "orders:list:own",        // GET  /api/orders              (own only)
+  "orders:notes:write",     // server action: save/clear internalNote on an order (ADMIN only)
   "orders:payments:write",  // POST /api/orders/:id/payments
-  "orders:adjust:write",    // POST /api/orders/:id/adjust
   "orders:rate:write",      // POST /api/orders/:id/rate
-  "wallet:read:own",        // GET  /api/users/:id/wallet    (own only)
-  "wallet:read:all",        // GET  /api/users/:id/wallet    (any)
-  "wallet:topup",           // POST /api/users/:id/wallet/topup
-  "users:read:all",         // GET  /users/:id               (any user — admin/bot)
-  "users:write:own",        // PATCH /api/users/:id          (own profile only)
-  "users:write:all",        // PATCH /api/users/:id          (any user — admin/bot)
+  "orders:read:all",        // GET  /api/orders/:id          (any)
+  "orders:read:own",        // GET  /api/orders/:id          (own only)
+  "orders:status:write",    // POST /api/orders/:id/status
+  "orders:write:all",       // PATCH /api/orders/:id         (any)
+  "orders:write:own",       // PATCH /api/orders/:id         (own only)
   "settings:write",         // server action: update service fee (ADMIN only)
+  "users:read:all",         // GET  /users/:id               (any user — admin/bot)
+  "users:write:all",        // PATCH /api/users/:id          (any user — admin/bot)
+  "users:write:own",        // PATCH /api/users/:id          (own profile only)
+  "wallet:read:all",        // GET  /api/users/:id/wallet    (any)
+  "wallet:read:own",        // GET  /api/users/:id/wallet    (own only)
+  "wallet:topup",           // POST /api/users/:id/wallet/topup
 ] as const
 
 export type Scope = (typeof SCOPES)[number]

@@ -277,9 +277,10 @@ export async function transitionStatus(
     }
   }
 
-  const messageParts: string[] = [message ?? `Status changed to ${newStatus}`]
-  if (autoFreezeNote) messageParts.push(autoFreezeNote)
-  const eventMessage = messageParts.join(". ")
+  // null = pure status transition with nothing extra to say.
+  // Combine human note + system detail when either (or both) are present.
+  const parts = [message, autoFreezeNote].filter(Boolean)
+  const eventMessage = parts.length > 0 ? parts.join(". ") : null
 
   return db.order.update({
     where: { id: orderId },
@@ -293,7 +294,7 @@ export async function transitionStatus(
           actor,
           actorId: actorId ?? null,
           actorName: actorName ?? null,
-          message: eventMessage,
+          message: eventMessage ?? undefined,
           oldStatus: order.status,
           newStatus,
         },
@@ -515,6 +516,22 @@ export async function adjustRequired(
       },
       include: ORDER_INCLUDE,
     })
+  })
+}
+
+/**
+ * Saves (or clears) the private internal note on an order.
+ * null = note cleared. This field is never surfaced to clients.
+ */
+export async function saveInternalNote(
+  orderId: string,
+  note: string | null,
+  db = prisma,
+): Promise<OrderWithRelations> {
+  return db.order.update({
+    where: { id: orderId },
+    data: { internalNote: note ?? null },
+    include: ORDER_INCLUDE,
   })
 }
 
