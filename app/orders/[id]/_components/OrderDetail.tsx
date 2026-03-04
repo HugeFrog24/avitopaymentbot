@@ -53,7 +53,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   REFUNDED: "Refunded",
 }
 
-// ── Actor badge styles + labels (admin only) ─────────────────────────────────
+// ── Actor badge styles + labels ───────────────────────────────────────────────
 
 const ACTOR_STYLES: Record<EventActor, string> = {
   ADMIN: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
@@ -62,10 +62,19 @@ const ACTOR_STYLES: Record<EventActor, string> = {
   SYSTEM: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
 }
 
+// Admin: shows actual actorName when available, falls back to this.
 const ACTOR_LABEL: Record<EventActor, string> = {
   ADMIN: "Admin",
   BOT: "Bot",
   CLIENT: "Client",
+  SYSTEM: "System",
+}
+
+// Client: role-type only — no personal names, but enough to know human vs automated.
+const CLIENT_ACTOR_LABEL: Record<EventActor, string> = {
+  ADMIN: "Operator",
+  BOT: "System",
+  CLIENT: "You",
   SYSTEM: "System",
 }
 
@@ -406,45 +415,43 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
         {visibleEvents.length === 0 ? (
           <p className="px-5 py-8 text-sm text-zinc-400 dark:text-zinc-500 text-center">No events recorded.</p>
         ) : (
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {visibleEvents.map((ev) => (
-              <div key={ev.id} className="px-5 py-3.5 flex items-start gap-4">
-                <span className="text-xs text-zinc-400 dark:text-zinc-500 whitespace-nowrap tabular-nums mt-0.5 w-32 shrink-0">
-                  {SHORT_TIME.format(ev.createdAt)}
-                </span>
-                {isAdmin ? (
-                  <>
-                    <span
-                      className={`text-xs font-medium px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${ACTOR_STYLES[ev.actor]}`}
-                    >
-                      {ev.actorName ?? ACTOR_LABEL[ev.actor]}
+          <table className="w-full text-sm">
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              {visibleEvents.map((ev) => (
+                <tr key={ev.id} className="align-top">
+                  <td className="pl-5 pr-4 py-3.5 text-xs text-zinc-400 dark:text-zinc-500 whitespace-nowrap tabular-nums">
+                    {SHORT_TIME.format(ev.createdAt)}
+                  </td>
+                  <td className="pr-3 py-3.5 whitespace-nowrap">
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${ACTOR_STYLES[ev.actor]}`}>
+                      {isAdmin ? ACTOR_LABEL[ev.actor] : CLIENT_ACTOR_LABEL[ev.actor]}
                     </span>
-                    <div className="min-w-0 flex-1">
-                      {ev.message != null && (
-                        <p className="text-sm text-zinc-700 dark:text-zinc-300 break-words">{ev.message}</p>
+                  </td>
+                  {isAdmin && (
+                    <td className="pr-4 py-3.5 whitespace-nowrap">
+                      {ev.actorName != null && (
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${ACTOR_STYLES[ev.actor]}`}>
+                          {ev.actorName}
+                        </span>
                       )}
-                      {ev.oldStatus != null &&
-                        ev.newStatus != null &&
-                        ev.oldStatus !== ev.newStatus && (
-                          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
-                            {STATUS_LABEL[ev.oldStatus]} → {STATUS_LABEL[ev.newStatus]}
-                          </p>
-                        )}
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                      {ev.newStatus == null ? ev.message : STATUS_LABEL[ev.newStatus]}
-                    </p>
+                    </td>
+                  )}
+                  <td className="pr-5 py-3.5 w-full">
                     {ev.message != null && (
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 italic">{ev.message}</p>
+                      <p className="text-zinc-700 dark:text-zinc-300 break-words">{ev.message}</p>
                     )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                    {ev.oldStatus != null &&
+                      ev.newStatus != null &&
+                      ev.oldStatus !== ev.newStatus && (
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                          {STATUS_LABEL[ev.oldStatus]} → {STATUS_LABEL[ev.newStatus]}
+                        </p>
+                      )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </main>
