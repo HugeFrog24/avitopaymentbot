@@ -437,9 +437,9 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
                   </td>
                   {isAdmin && (
                     <td className="pr-4 py-3.5 whitespace-nowrap">
-                      {ev.actorName != null && (
+                      {(ev.actorName != null || ev.actor === "CLIENT" || ev.actor === "ADMIN") && (
                         <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${ACTOR_STYLES[ev.actor]}`}>
-                          {ev.actorName}
+                          {ev.actorName ?? "Anonymous"}
                         </span>
                       )}
                     </td>

@@ -121,7 +121,7 @@ async function getSessionUser(): Promise<{ id: string; role: Role; actorName: st
   return {
     id: session.user.id,
     role: user?.role ?? "CLIENT",
-    actorName: user?.handle ?? user?.name ?? null,
+    actorName: user?.handle?.trim() || user?.name?.trim() || null,
   }
 }
 
