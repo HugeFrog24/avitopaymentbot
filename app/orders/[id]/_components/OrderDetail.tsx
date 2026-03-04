@@ -123,6 +123,7 @@ export async function OrderDetail({ order, isAdmin, backHref, orderNote }: Reado
   const nextStates = getNextStates(order.status)
   const canPay = PAYABLE.has(order.status)
   const canAdjust = ADJUSTABLE.has(order.status)
+  const confirmPaymentKey = canPay ? crypto.randomUUID() : ""
 
   // ── Ruble estimate ──────────────────────────────────────────────────────────
   // Shown when requiredRub is not yet set but originalPrice is available.
@@ -387,7 +388,7 @@ export async function OrderDetail({ order, isAdmin, backHref, orderNote }: Reado
               <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <SectionHeader title="Confirm payment" />
                 <div className="p-4">
-                  <ConfirmPaymentForm orderId={order.id} remainingBalanceRub={balance} />
+                  <ConfirmPaymentForm key={confirmPaymentKey} orderId={order.id} remainingBalanceRub={balance} initialIdempotencyKey={confirmPaymentKey} />
                 </div>
               </div>
             )}

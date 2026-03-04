@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { ArrowDownToLine } from "lucide-react"
 import { confirmPaymentAction } from "../actions"
 
@@ -13,20 +14,19 @@ const inputCls =
 
 const labelCls = "block text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1"
 
-// ── Inner form: manages its own idempotency key ───────────────────────────────
-// Remounted (via key prop) after each successful submission to reset inputs
-// and generate a fresh UUID.
+// ── Inner form ────────────────────────────────────────────────────────────────
 
 function PaymentFields({
+  idempotencyKey,
   onSubmit,
   isPending,
   remainingBalanceRub,
 }: Readonly<{
+  idempotencyKey: string
   onSubmit: (e: React.SyntheticEvent<HTMLFormElement>) => void
   isPending: boolean
   remainingBalanceRub: number
 }>) {
-  const [idempotencyKey] = useState(() => crypto.randomUUID())
   const [amount, setAmount] = useState("")
 
   return (
@@ -100,10 +100,11 @@ function PaymentFields({
 export function ConfirmPaymentForm({
   orderId,
   remainingBalanceRub,
-}: Readonly<{ orderId: string; remainingBalanceRub: number }>) {
+  initialIdempotencyKey,
+}: Readonly<{ orderId: string; remainingBalanceRub: number; initialIdempotencyKey: string }>) {
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const [formKey, setFormKey] = useState(0)
 
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -112,7 +113,7 @@ export function ConfirmPaymentForm({
     startTransition(async () => {
       const err = await confirmPaymentAction(orderId, null, fd)
       if (err === null) {
-        setFormKey((k) => k + 1)
+        router.refresh()
       } else {
         setError(err)
       }
@@ -121,7 +122,7 @@ export function ConfirmPaymentForm({
 
   return (
     <div className="space-y-2">
-      <PaymentFields key={formKey} onSubmit={handleSubmit} isPending={isPending} remainingBalanceRub={remainingBalanceRub} />
+      <PaymentFields idempotencyKey={initialIdempotencyKey} onSubmit={handleSubmit} isPending={isPending} remainingBalanceRub={remainingBalanceRub} />
       {error != null && <p className="text-xs text-red-500 dark:text-red-400">{error}</p>}
     </div>
   )
