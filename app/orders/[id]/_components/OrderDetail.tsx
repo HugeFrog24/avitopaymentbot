@@ -416,6 +416,14 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
           <p className="px-5 py-8 text-sm text-zinc-400 dark:text-zinc-500 text-center">No events recorded.</p>
         ) : (
           <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-100 dark:border-zinc-800 text-left">
+                <th className="pl-5 pr-4 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">Time</th>
+                <th className="pr-3 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">Role</th>
+                {isAdmin && <th className="pr-4 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">Name</th>}
+                <th className="pr-5 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">Event</th>
+              </tr>
+            </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {visibleEvents.map((ev) => (
                 <tr key={ev.id} className="align-top">
