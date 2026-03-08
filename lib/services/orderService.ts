@@ -11,7 +11,7 @@ import type {
   User,
 } from "@/lib/generated/prisma/client"
 import { prisma } from "@/lib/db/prisma"
-import { assertTransition } from "@/lib/services/fsmService"
+import { assertTransition, isTerminal } from "@/lib/services/fsmService"
 import { convertToRub } from "@/lib/services/currencyService"
 import { getSettings } from "@/lib/services/settingsService"
 
@@ -523,16 +523,110 @@ export async function adjustRequired(
  * Saves (or clears) the private internal note on an order.
  * null = note cleared. This field is never surfaced to clients.
  */
+export interface OrderNoteWithEditor {
+  note: string
+  updatedAt: Date
+  updatedBy: string | null
+  editor: Pick<User, "handle" | "name"> | null
+}
+
+// ── Transfer ───────────────────────────────────────────────────────────────────
+
+export interface TransferOrderParams {
+  orderId: string
+  targetUserId: string
+  reason: string
+  actor?: EventActor
+  actorId?: string | null
+  actorName?: string | null
+}
+
+/**
+ * Reassigns order.userId to a different user account.
+ * All existing PaymentEntry and WalletTransaction records are left untouched —
+ * payment history remains attributed to whoever originally paid (immutable ledger).
+ * Regenerates claimToken so the previous owner's bot context is invalidated.
+ */
+export async function transferOrder(
+  params: TransferOrderParams,
+  db = prisma,
+): Promise<OrderWithRelations> {
+  const { orderId, targetUserId, reason, actor, actorId, actorName } = params
+
+  const order = await db.order.findUniqueOrThrow({ where: { id: orderId } })
+
+  if (order.userId === targetUserId)
+    throw new Error("Cannot transfer order to its current owner")
+
+  const targetUser = await db.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true },
+  })
+  if (!targetUser)
+    throw new Error(`Cannot transfer order: target user "${targetUserId}" not found`)
+
+  const newClaimToken = crypto.randomUUID()
+
+  // Capture financial and state context at transfer time so the event is
+  // self-contained for future reviewers without needing to join other tables.
+  const context: string[] = []
+  if (isTerminal(order.status))
+    context.push(`status: ${order.status} (terminal)`)
+  if (order.paidRub.gt(0))
+    context.push(`paidRub: ${order.paidRub.toFixed(2)} ₽ (payment history remains attributed to previous owner)`)
+  const contextNote = context.length > 0 ? ` [${context.join("; ")}]` : ""
+
+  const message =
+    `Order transferred from user ${order.userId} to user ${targetUserId}.${contextNote} ` +
+    `Claim token regenerated. Reason: ${reason}`
+
+  return db.$transaction(async (tx) =>
+    tx.order.update({
+      where: { id: orderId },
+      data: {
+        userId: targetUserId,
+        claimToken: newClaimToken,
+        events: {
+          create: {
+            actor: actor ?? "ADMIN",
+            actorId: actorId ?? null,
+            actorName: actorName ?? null,
+            message,
+            oldStatus: order.status,
+            newStatus: order.status,
+          },
+        },
+      },
+      include: ORDER_INCLUDE,
+    })
+  )
+}
+
+export async function getInternalNote(
+  orderId: string,
+  db = prisma,
+): Promise<OrderNoteWithEditor | null> {
+  return db.orderInternalNote.findUnique({
+    where: { orderId },
+    select: { note: true, updatedAt: true, updatedBy: true, editor: { select: { handle: true, name: true } } },
+  })
+}
+
 export async function saveInternalNote(
   orderId: string,
   note: string | null,
+  updatedBy: string | null = null,
   db = prisma,
-): Promise<OrderWithRelations> {
-  return db.order.update({
-    where: { id: orderId },
-    data: { internalNote: note ?? null },
-    include: ORDER_INCLUDE,
-  })
+): Promise<void> {
+  if (note == null) {
+    await db.orderInternalNote.deleteMany({ where: { orderId } })
+  } else {
+    await db.orderInternalNote.upsert({
+      where: { orderId },
+      update: { note, updatedBy },
+      create: { orderId, note, updatedBy },
+    })
+  }
 }
 
 /** Fetches a single order with all relations. */

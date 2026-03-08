@@ -19,8 +19,9 @@ export async function POST(req: NextRequest, { params }: IdParams) {
     }
 
     const note = typeof body.note === "string" ? body.note : undefined
+    const idempotencyKey = typeof body.idempotencyKey === "string" ? body.idempotencyKey : undefined
 
-    const wallet = await topUp({ userId: id, amountRub, note })
+    const wallet = await topUp({ userId: id, amountRub, note, idempotencyKey })
     return ok(wallet)
   } catch (err) {
     if (isPrismaNotFound(err)) return notFound("User not found")

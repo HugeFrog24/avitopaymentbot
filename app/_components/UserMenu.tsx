@@ -9,13 +9,14 @@ import { UserAvatar } from "@/app/_components/UserAvatar"
 interface Props {
   userId: string
   displayName: string
+  isAdmin?: boolean
 }
 
 const itemCls =
   "block w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 " +
   "hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
 
-export function UserMenu({ userId, displayName }: Readonly<Props>) {
+export function UserMenu({ userId, displayName, isAdmin }: Readonly<Props>) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -67,6 +68,21 @@ export function UserMenu({ userId, displayName }: Readonly<Props>) {
           >
             My orders
           </Link>
+          {isAdmin && (
+            <>
+              <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
+              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                Admin
+              </p>
+              <Link
+                href="/admin/settings"
+                onClick={() => { setOpen(false) }}
+                className={itemCls}
+              >
+                Settings
+              </Link>
+            </>
+          )}
           <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
           <button
             type="button"

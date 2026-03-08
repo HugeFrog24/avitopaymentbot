@@ -101,7 +101,7 @@ export async function saveInternalNoteAction(
   const note = ((formData.get("internalNote") as string | null) ?? "").trim() || null
 
   try {
-    await saveInternalNote(orderId, note)
+    await saveInternalNote(orderId, note, caller.userId)
     revalidatePath(`/admin/orders/${orderId}`)
     return null
   } catch (err) {

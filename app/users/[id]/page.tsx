@@ -8,7 +8,7 @@ import { auth } from "@/lib/auth"
 import { resolveCaller, hasScope } from "@/lib/api/auth"
 import { getWalletWithTransactions } from "@/lib/services/walletService"
 import { UserAvatar } from "@/app/_components/UserAvatar"
-import { HandleEditor } from "./_components/HandleEditor"
+import { UserFieldEditor } from "./_components/UserFieldEditor"
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -138,12 +138,22 @@ export default async function UserPage({ params }: Readonly<{ params: Promise<{ 
             </dt>
             <dd className="text-sm">
               {isOwnProfile || isAdmin
-                ? <HandleEditor userId={user.id} initialHandle={user.handle} />
-                : <span className={user.handle == null ? "text-zinc-300 dark:text-zinc-600" : "font-mono"}>{user.handle ?? "—"}</span>
+                ? <UserFieldEditor userId={user.id} field="handle" initialValue={user.handle} placeholder="@username" />
+                : <span className={user.handle == null ? "text-zinc-300 dark:text-zinc-600" : ""}>{user.handle ?? "—"}</span>
               }
             </dd>
           </div>
-          <ProfileRow label="Display name" value={user.name} />
+          <div>
+            <dt className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-0.5">
+              Display name
+            </dt>
+            <dd className="text-sm">
+              {isOwnProfile || isAdmin
+                ? <UserFieldEditor userId={user.id} field="name" initialValue={user.name} placeholder="Full name" />
+                : <span className={user.name == null ? "text-zinc-300 dark:text-zinc-600" : ""}>{user.name ?? "—"}</span>
+              }
+            </dd>
+          </div>
           <ProfileRow label="Email" value={<EmailCell email={user.email} verified={user.emailVerified} />} />
           <ProfileRow label="Login method" value={
             account == null ? null : formatProvider(account.providerId)

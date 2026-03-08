@@ -5,7 +5,29 @@ import { ok, badRequest, forbidden, notFound, conflict, serverError } from "@/li
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
 import type { IdParams } from "@/lib/api/types"
 
-// PATCH /api/users/:id — update own (or any) user's handle
+// Returns the normalised value, null (clear), undefined (field absent), or an error string.
+function parseStringField(
+  body: Record<string, unknown>,
+  key: string,
+  maxLen = 64,
+): { value: string | null | undefined; error?: never } | { value?: never; error: string } {
+  const raw = body[key]
+  if (raw === undefined) return { value: undefined }
+  if (raw !== null && typeof raw !== "string") return { error: `${key} must be a string or null` }
+  const trimmed = typeof raw === "string" ? raw.trim() || null : null
+  if (trimmed !== null && trimmed.length > maxLen) return { error: `${key} must be ${maxLen} characters or fewer` }
+  return { value: trimmed }
+}
+
+function mapPrismaError(err: unknown) {
+  if (err instanceof PrismaClientKnownRequestError) {
+    if (err.code === "P2025") return notFound("User not found")
+    if (err.code === "P2002") return conflict("Handle is already taken")
+  }
+  return serverError(err)
+}
+
+// PATCH /api/users/:id — update own (or any) user's handle and/or name
 // CLIENT: own profile only. ADMIN + BOT: any user.
 export async function PATCH(req: NextRequest, { params }: IdParams) {
   const caller = await requireScope("users:write:own", "users:write:all")
@@ -16,35 +38,32 @@ export async function PATCH(req: NextRequest, { params }: IdParams) {
   if (!hasScope(caller, "users:write:all") && caller.userId !== id) return forbidden()
 
   const body = (await req.json()) as Record<string, unknown>
-  const raw = body.handle
 
-  if (raw !== undefined && raw !== null && typeof raw !== "string") {
-    return badRequest("handle must be a string or null")
+  const parsedHandle = parseStringField(body, "handle")
+  if (parsedHandle.error) return badRequest(parsedHandle.error)
+
+  const parsedName = parseStringField(body, "name")
+  if (parsedName.error) return badRequest(parsedName.error)
+
+  const { value: handle } = parsedHandle
+  const { value: name } = parsedName
+
+  if (handle === undefined && name === undefined) {
+    return badRequest("at least one of handle or name is required")
   }
 
-  // Normalise: null clears the handle; string is trimmed and validated
-  let handle: string | null = null
-  if (typeof raw === "string") {
-    handle = raw.trim()
-    if (handle === "") {
-      handle = null
-    } else if (handle.length > 64) {
-      return badRequest("handle must be 64 characters or fewer")
-    }
-  }
+  const data: { handle?: string | null; name?: string | null } = {}
+  if (handle !== undefined) data.handle = handle
+  if (name !== undefined) data.name = name
 
   try {
     const user = await prisma.user.update({
       where: { id },
-      data: { handle },
-      select: { id: true, handle: true },
+      data,
+      select: { id: true, handle: true, name: true },
     })
     return ok(user)
   } catch (err) {
-    if (err instanceof PrismaClientKnownRequestError) {
-      if (err.code === "P2025") return notFound("User not found")
-      if (err.code === "P2002") return conflict("Handle is already taken")
-    }
-    return serverError(err)
+    return mapPrismaError(err)
   }
 }

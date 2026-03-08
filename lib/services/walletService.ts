@@ -25,13 +25,26 @@ export async function getOrCreateWallet(userId: string, db = prisma): Promise<Wa
 /**
  * Credits amountRub to the user's wallet (admin top-up).
  * Creates the wallet automatically if the user doesn't have one yet.
+ *
+ * Pass idempotencyKey (a UUID per button-press) to make retries safe.
+ * A second call with the same key returns the current wallet without crediting again.
  */
 export async function topUp(
-  params: { userId: string; amountRub: number | string; note?: string },
+  params: { userId: string; amountRub: number | string; note?: string; idempotencyKey?: string },
   db = prisma,
 ): Promise<Wallet> {
   const amount = new Decimal(params.amountRub)
   if (amount.lte(0)) throw new Error("Top-up amount must be positive")
+
+  // Idempotency: if this key was already used, return current wallet without crediting again
+  if (params.idempotencyKey != null) {
+    const existing = await db.walletTransaction.findUnique({
+      where: { idempotencyKey: params.idempotencyKey },
+    })
+    if (existing != null) {
+      return db.wallet.findUniqueOrThrow({ where: { userId: params.userId } })
+    }
+  }
 
   return db.$transaction(async (tx) => {
     // Upsert: create with initial balance, or atomically increment existing
@@ -47,6 +60,7 @@ export async function topUp(
         type: "TOPUP",
         amountRub: amount,
         note: params.note ?? null,
+        ...(params.idempotencyKey == null ? {} : { idempotencyKey: params.idempotencyKey }),
       },
     })
 

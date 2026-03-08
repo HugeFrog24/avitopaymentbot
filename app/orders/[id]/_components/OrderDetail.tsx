@@ -1,8 +1,8 @@
 import Link from "next/link"
-import { ArrowLeft, Receipt } from "lucide-react"
+import { ArrowLeft, ArrowRightLeft, Receipt } from "lucide-react"
 import { getNextStates } from "@/lib/services/fsmService"
 import type { EventActor, OrderStatus, PaymentSource } from "@/lib/generated/prisma/client"
-import type { OrderWithRelations } from "@/lib/services/orderService"
+import type { OrderWithRelations, OrderNoteWithEditor } from "@/lib/services/orderService"
 import { StatusBadge } from "@/app/_components/StatusBadge"
 import { TransitionButtons } from "@/app/admin/orders/[id]/_components/TransitionButtons"
 import { ConfirmPaymentForm } from "@/app/admin/orders/[id]/_components/ConfirmPaymentForm"
@@ -110,9 +110,11 @@ interface OrderDetailProps {
   isAdmin: boolean
   /** Breadcrumb back link (e.g. "/admin"). Omit to hide the breadcrumb. */
   backHref?: string
+  /** Admin-only internal note. Fetched separately — never included in public API responses. */
+  orderNote?: OrderNoteWithEditor | null
 }
 
-export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDetailProps>) {
+export async function OrderDetail({ order, isAdmin, backHref, orderNote }: Readonly<OrderDetailProps>) {
   const { user, payments, adjustments, events } = order
   const requiredRub = order.requiredRub.toNumber()
   const paidRub = order.paidRub.toNumber()
@@ -121,6 +123,7 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
   const nextStates = getNextStates(order.status)
   const canPay = PAYABLE.has(order.status)
   const canAdjust = ADJUSTABLE.has(order.status)
+  const confirmPaymentKey = canPay ? crypto.randomUUID() : ""
 
   // ── Ruble estimate ──────────────────────────────────────────────────────────
   // Shown when requiredRub is not yet set but originalPrice is available.
@@ -385,7 +388,7 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
               <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <SectionHeader title="Confirm payment" />
                 <div className="p-4">
-                  <ConfirmPaymentForm orderId={order.id} remainingBalanceRub={balance} />
+                  <ConfirmPaymentForm key={confirmPaymentKey} orderId={order.id} remainingBalanceRub={balance} initialIdempotencyKey={confirmPaymentKey} />
                 </div>
               </div>
             )}
@@ -399,10 +402,33 @@ export async function OrderDetail({ order, isAdmin, backHref }: Readonly<OrderDe
               </div>
             )}
 
+            {/* BLOCKED: Transfer order — needs a user-picker component (no "List Users" modal yet).
+                  API is ready: POST /api/orders/:id/transfer { targetUserId, reason }
+                  Build user search/lookup first, then wire targetUserId + reason into this card. */}
+            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+              <SectionHeader title="Transfer order" />
+              <div className="p-4">
+                <button
+                  disabled
+                  title="Requires user lookup — not yet implemented"
+                  className="w-full inline-flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs font-medium text-zinc-400 dark:text-zinc-600 bg-zinc-50 dark:bg-zinc-800/50 cursor-not-allowed"
+                >
+                  <ArrowRightLeft size={13} />
+                  Transfer to another account
+                </button>
+              </div>
+            </div>
+
             <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
               <SectionHeader title="Internal note" />
               <div className="p-4">
-                <InternalNoteBox orderId={order.id} initialNote={order.internalNote} />
+                <InternalNoteBox
+                  orderId={order.id}
+                  initialNote={orderNote?.note ?? null}
+                  initialUpdatedAt={orderNote?.updatedAt ?? null}
+                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- intentional: || skips empty strings, ?? does not
+                  initialEditorName={orderNote?.editor?.handle?.trim() || orderNote?.editor?.name?.trim() || null}
+                />
               </div>
             </div>
           </div>
